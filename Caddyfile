@@ -1,0 +1,54 @@
+# Caddyfile - Reverse Proxy для Opium с автоматическим HTTPS
+#
+# Caddy автоматически получает и обновляет TLS-сертификаты (Let's Encrypt).
+# Установка: https://caddyserver.com/docs/install
+#
+# Использование:
+#   1. Замените your-domain.com на ваш домен
+#   2. Убедитесь что DNS A-запись указывает на IP сервера
+#   3. Запустите: caddy run --config Caddyfile
+#
+# Для локальной разработки (самоподписанный сертификат):
+#   caddy run --config Caddyfile --adapter caddyfile
+
+# ══════════════════════════════════════════════════════════════
+# Продакшен (ваш домен с автоматическим HTTPS)
+# ══════════════════════════════════════════════════════════════
+
+your-domain.com {
+    # Reverse proxy на backend
+    reverse_proxy localhost:8000
+
+    # Security headers (дополнительно к тем что в FastAPI middleware)
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Frame-Options "DENY"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+    }
+
+    # Логирование
+    log {
+        output file /var/log/caddy/opium.log {
+            roll_size 50mb
+            roll_keep 5
+        }
+    }
+
+    # Ограничение размера тела запроса (10MB)
+    request_body {
+        max_size 10MB
+    }
+}
+
+# ══════════════════════════════════════════════════════════════
+# Локальная разработка (localhost с самоподписанным сертификатом)
+# Раскомментировать при необходимости, закомментировать блок выше
+# ══════════════════════════════════════════════════════════════
+
+# :443 {
+#     tls internal
+#     reverse_proxy localhost:8000
+# }
